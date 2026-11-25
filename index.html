@@ -2,10 +2,6 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#0F5C63">
-<link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-192.png">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Periodización de pacientes</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600&display=swap">
@@ -118,13 +114,20 @@ textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var
 .acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 @media(prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(16px);opacity:0}}}
 </style>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0F5C63">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Periodización">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 </head>
 <body>
 <div id="app"></div>
 <div id="modal"></div>
 <script>
-/* Fuera de Claude (Netlify u otro hosting): descargas directas desde el navegador. Los datos quedan en este navegador (localStorage). */
-if(!window.claude){window.claude={use:async k=>k==='downloads'?{save:async o=>{const t=/\.pdf$/i.test(o.filename)?'application/pdf':'application/json',b=new Blob([o.data],{type:t}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=o.filename;document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(a.href)},1500)}}:null}}
+/* Fuera de Claude no existe window.claude: se crea solo la descarga de archivos (respaldos y PDF). Los datos quedan en este navegador. */
+if(!window.claude){window.claude={use:async n=>n==='downloads'?{save:async({filename,data})=>{const t=/\.pdf$/i.test(filename)?'application/pdf':'application/json';const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:t}));a.download=filename;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}}:null}}
 </script>
 <script>
 const LANES=['Fase','Fuerza/Pot.','Resistencia','Vel/agilidad'];
@@ -1268,13 +1271,11 @@ function pacGaugeSVG(r,K){
 }
 function pacHrvBlk(R,K){
   const h=pacHrv(R);if(!h)return '';
-  return `<h3>Tu sistema nervioso y tu recuperación</h3>
+  return `<h3>Tu recuperación</h3>
   <p class="sub">Medido con la banda en reposo: la variabilidad del pulso (RMSSD), es decir, cuánto cambia el tiempo entre un latido y otro.</p>
   <div class="pr-hc"><div class="t">Variabilidad del pulso en reposo (RMSSD)</div><div class="v">${h.v} <small>ms${h.p!=null?' · mes anterior '+h.p+' ms':''}</small></div></div>
   ${h.ratio!=null?pacGaugeSVG(h.ratio,K):''}
   <p style="margin-top:8px"><b>${h.head}.</b> ${h.txt.join(' ')}</p>
-  <h4>¿Qué quiere decir esto?</h4>
-  <p>Tu sistema nervioso funciona con dos "pedales". El <b>simpático</b> es el acelerador: se activa con el esfuerzo, el estrés y el estado de alerta. El <b>parasimpático</b> es el freno: domina cuando descansas y te recuperas. El RMSSD refleja sobre todo la actividad del freno: <b>más alto suele significar un cuerpo más recuperado</b>; más bajo, un cuerpo más exigido.</p>
   <p class="pr-foot">Es una guía, no un diagnóstico. Dormir poco, el café, el estrés o una medición apurada también lo cambian, por eso lo miramos en conjunto y siempre comparado contigo.</p>`;
 }
 /* ---- Resumen fisiológico reducido ---- */
@@ -1298,11 +1299,11 @@ function pacRecData(R){
   const dl=last.ph.rec.d1,dp=A(ear.map(s=>s.ph.rec.d1)),tl=typeof last.ph.rec.t50==='number'?last.ph.rec.t50:null,tp=A(ear.map(s=>s.ph.rec.t50).filter(x=>typeof x==='number'));
   let st='first',txt=[];
   if(ear.length){const df=dl-dp,tf=tl!=null&&tp!=null?tl-tp:null;
-    if(df>=3||(tf!=null&&tf<=-5&&df>=-2)){st='better';txt.push(`Esta vez tu pulso bajó <b>${dl} latidos</b> en el primer minuto, más que en tus sesiones anteriores (promedio ${rnd(dp,0)}). <b>Te recuperaste más rápido</b>, una buena señal de que tu corazón se adapta al entrenamiento.`)}
-    else if(df<=-3){st='worse';txt.push(`Esta vez tu pulso bajó <b>${dl} latidos</b> en el primer minuto, menos que en tus sesiones anteriores (promedio ${rnd(dp,0)}). Puede deberse a cansancio, poco sueño, calor, estrés o a que el esfuerzo fue más intenso. Lo revisamos juntos.`)}
-    else{st='same';txt.push(`Tu pulso bajó <b>${dl} latidos</b> en el primer minuto, parecido a tus sesiones anteriores (promedio ${rnd(dp,0)}). Tu recuperación se mantiene estable.`)}
-    if(tf!=null&&Math.abs(tf)>=5)txt.push(`Además, tardó <b>${tl} s</b> en bajar la mitad de lo que tenía por bajar (antes ${rnd(tp,0)} s): ${tf<0?'menos tiempo significa una recuperación más rápida':'esta vez demoró un poco más'}.`)}
-  else txt.push(`Es tu primera sesión con la recuperación registrada: tu pulso bajó <b>${dl} latidos</b> en el primer minuto. Con las próximas sesiones podremos comparar cómo evolucionas.`);
+    if(df>=3||(tf!=null&&tf<=-5&&df>=-2)){st='better';txt.push(`Tu pulso bajó <b>${dl} latidos</b> en el primer minuto, más que en tus sesiones anteriores: una buena señal de que tu corazón se adapta al entrenamiento.`)}
+    else if(df<=-3){st='worse';txt.push(`Tu pulso bajó <b>${dl} latidos</b> en el primer minuto, menos que en tus sesiones anteriores. Lo revisamos juntos.`)}
+    else{st='same';txt.push(`Tu pulso bajó <b>${dl} latidos</b> en el primer minuto, parecido a tus sesiones anteriores: tu recuperación se mantiene estable.`)}
+  }
+  else txt.push(`Tu pulso bajó <b>${dl} latidos</b> en el primer minuto. Con las próximas sesiones podremos comparar cómo evolucionas.`);
   return {all,last,ear,mode,dl,dp,tl,tp,st,txt};
 }
 function pacRecSVG(d,K){
@@ -1324,12 +1325,47 @@ function pacRecBlk(R,K){
   const d=pacRecData(R);if(!d)return '';
   const e=esc,tile=(b,t)=>`<div class="pr-k"><b>${b}</b><span>${t}</span></div>`;
   return `<h3>Recuperación cardiovascular</h3>
-  <p class="sub"><b>¿De qué se trata?</b> Aquí ves cómo baja tu pulso en el descanso, justo después de terminar el ejercicio. Un corazón entrenado frena más rápido: mientras más latidos baja en el primer minuto, mejor suele ser tu recuperación.</p>
+  <p class="sub">${d.txt.join(' ')}</p>
   ${pacRecSVG(d,K)}
-  <div class="lgd"><span><u style="border-top:4px solid ${K.s[0]}"></u>Última sesión (${sd(pd(d.last.date))})</span>${d.ear.length?`<span><u style="border-top:3px dashed ${K.mut}"></u>${d.ear.length===1?'Sesión anterior':'Sesiones anteriores'}</span>`:''}</div>
-  <div class="pr-kp">${tile(d.dl,'latidos que bajó en el 1.er minuto')}${d.dp!=null?tile(rnd(d.dp,0),'promedio en sesiones anteriores'):''}${d.tl!=null?tile(d.tl+' s','en bajar la mitad de la caída'):''}</div>
-  <p style="margin-top:10px">${d.txt.join(' ')}</p>
-  <p class="pr-foot">Recuperación ${e(d.mode)}${d.mode==='pasiva'?' (quieto)':d.mode==='activa'?' (caminando suave)':''}. Solo se comparan sesiones con el mismo tipo de recuperación.</p>`;
+  <div class="lgd"><span><u style="border-top:4px solid ${K.s[0]}"></u>Última sesión (${sd(pd(d.last.date))})</span>${d.ear.length?`<span><u style="border-top:3px dashed ${K.mut}"></u>${d.ear.length===1?'Sesión anterior':'Sesiones anteriores'}</span>`:''}</div>`;
+}
+/* ---- Zonas de entrenamiento (informe al paciente): resumen del mes y comparación con meses anteriores ---- */
+function pacZonaSum(R,sh){
+  const a=R.ph;if(!a||!a.zpct||!a.zinfo)return '';
+  const zs=a.zinfo,it=zs.items,n=it.length,zp=a.zpct;
+  const BEN=n===3?['ayuda a construir tu base aeróbica y a recuperarte mejor entre sesiones','mejora tu capacidad de sostener esfuerzos por más tiempo','desarrolla tu capacidad máxima y tu tolerancia al esfuerzo intenso']
+    :['ayuda a recuperarte y a que tu cuerpo asimile el entrenamiento','construye tu base aeróbica y mejora tu resistencia','mejora tu capacidad de mantener un esfuerzo por más tiempo','sube tu umbral: puedes sostener ritmos más exigentes sin cansarte tan rápido','desarrolla tu potencia y tu capacidad máxima'];
+  const dom=v=>{let k=1;for(let i=2;i<=n;i++)if(v[i]>v[k])k=i;return v[k]>0?k:0};
+  const idx=v=>{const t=v.slice(1).reduce((x,y)=>x+y,0);return t>0?v.slice(1).reduce((s,x,i)=>s+x*(i+1),0)/t:null};
+  const lab=i=>`zona ${String(it[i-1].n).replace(/^Z(ona)?\s*/i,'')} (${String(it[i-1].t).toLowerCase()})`;
+  const k=dom(zp);if(!k)return '';
+  let s=sh?`Trabajamos más en la <b>${lab(k)}</b>.`:`Este mes trabajamos más en la <b>${lab(k)}</b>, con ${zp[k]} % del tiempo medido. Esta zona ${BEN[k-1]}.`;
+  const ok=q=>q&&q.n&&q.zpct&&q.zinfo&&q.zn===a.zn&&q.zinfo.model===zs.model;
+  const ms=[1,2,3].map(i=>{const [yy,mm]=mAgo(R.y,R.m,i);return {mm,q:monthAgg(R.p,yy,mm)}}).filter(x=>ok(x.q));
+  const cur=idx(zp);
+  const first=ms.length?ms[0]:null,pi=first?idx(first.q.zpct):null;
+  if(first&&cur!=null&&pi!=null&&first.mm===(R.m+11)%12){
+    const d=cur-pi,mn=MES[first.mm].toLowerCase(),kq=dom(first.q.zpct);
+    if(sh){s+=d>0.15?` Nos exigimos más que en ${mn}.`:d<-0.15?` Nos exigimos un poco menos que en ${mn}.`:` Exigencia parecida a la de ${mn}.`}
+    else if(d>0.15)s+=` Comparado con ${mn}, <b>nos exigimos más</b>: pasaste más tiempo en zonas de mayor intensidad${kq&&kq<k?` (en ${mn} lo más trabajado fue la ${lab(kq)})`:''}.`;
+    else if(d<-0.15)s+=` Comparado con ${mn}, <b>nos exigimos un poco menos</b>: hubo más tiempo en zonas suaves${kq&&kq>k?` (en ${mn} lo más trabajado fue la ${lab(kq)})`:''}. Esto puede ser parte de la planificación, por ejemplo en semanas de descarga.`;
+    else s+=` Comparado con ${mn}, la exigencia fue <b>muy parecida</b>.`;
+  }else if(!ms.length)s+=sh?' Es el primer mes con este registro.':' Es el primer mes con este registro, así que lo usaremos como punto de partida para comparar los próximos.';
+  const ix=ms.slice().reverse().map(x=>idx(x.q.zpct));
+  if(!sh&&ms.length>=2&&cur!=null&&ix.every(v=>v!=null)){const seq=[...ix,cur];
+    if(seq.every((v,i)=>!i||v>seq[i-1]+0.05))s+=' Mirando los últimos meses, tu nivel de exigencia ha ido <b>subiendo de forma progresiva</b>.';
+    else if(seq.every((v,i)=>!i||v<seq[i-1]-0.05))s+=' Mirando los últimos meses, tu nivel de exigencia ha ido <b>bajando de forma progresiva</b>.'}
+  return s;
+}
+function pacZonasBlk(R,K){
+  const a=R.ph,e=esc;if(!a||!a.n||!(a.zpct&&a.zinfo))return '';
+  const zs=a.zinfo,names=['Bajo Z1',...zs.items.map(i=>i.n)],n=names.length,sm=pacZonaSum(R);
+  const pm=[];for(let i=5;i>=0;i--){const [yy,mm]=mAgo(R.y,R.m,i),q=i?monthAgg(R.p,yy,mm):a;
+    if(q&&q.n&&q.zpct&&q.zinfo&&q.zn===a.zn&&q.zinfo.model===zs.model)pm.push({l:MES[mm].slice(0,3),z:q.zpct})}
+  return `<h3>Zonas de entrenamiento</h3>${sm?`<p>${sm}</p>`:''}
+  ${zbarSVG(a.zpct,names,K)}<div class="lgd">${names.map((nm,i)=>`<span><i style="background:${zcol(i,n)}"></i>${e(nm)}</span>`).join('')}</div>
+  ${pm.length>1?`<h4>Distribución por mes</h4>${stackSVG(pm.map(x=>x.l),pm.map(x=>x.z),K,n)}`:''}
+  ${a.zskip>0?`<p class="sub">${plu(a.zskip,'sesión usó','sesiones usaron')} otro método o límites de zonas y no se suma${a.zskip>1?'n':''} aquí.</p>`:''}`;
 }
 function pacCompSVG(c,N,K){
   const cx=220,cy=170,rad=92,n=c.length,f1=a=>a.map(q=>q.toFixed(1)).join(',');
@@ -1345,7 +1381,7 @@ function pacCompSVG(c,N,K){
 function pacTrabBlk(R,e,K){
   if(!e.comp.length)return '';
   const main=e.comp.filter(x=>x.k!=='wu'),mx=Math.max(...main.map(x=>x.n)),top=main.filter(x=>x.n===mx&&mx>0).map(x=>x.l);
-  return `<h3>Qué trabajamos más este mes</h3><p class="sub">Cada vértice del pentágono es un componente del entrenamiento; mientras más se acerca al borde exterior (100%), en más sesiones lo trabajaste (de las ${e.N} con ejercicios registrados). Una sesión puede incluir varios.</p>${pacCompSVG(e.comp,e.N,K)}${top.length?`<p style="margin-top:8px">Lo que más trabajaste (sin contar el calentamiento): <b>${(top.length>1?top.slice(0,-1).join(', ')+' y '+top[top.length-1]:top[0])}</b>${R.done.length>R.wex?`. En ${plu(R.done.length-R.wex,'sesión','sesiones')} no se registraron ejercicios, por eso no se cuentan aquí`:''}.</p>`:''}`;
+  return `<h3>Qué trabajamos más este mes</h3>${pacCompSVG(e.comp,e.N,K)}${top.length?`<p style="margin-top:8px">Lo que más trabajaste (sin contar el calentamiento): <b>${(top.length>1?top.slice(0,-1).join(', ')+' y '+top[top.length-1]:top[0])}</b>${R.done.length>R.wex?`. En ${plu(R.done.length-R.wex,'sesión','sesiones')} no se registraron ejercicios, por eso no se cuentan aquí`:''}.</p>`:''}`;
 }
 const pacCk=(a,c)=>a.map(x=>`<div class="pr-ck ${c||''}"><i></i><span>${esc(x)}</span></div>`).join('');
 function pacBody(R,K){
@@ -1357,23 +1393,20 @@ function pacBody(R,K){
     if(e.streak>=2)sum+=` y llevas <b>${e.streak} semanas seguidas</b> entrenando`;sum+='.'}
   B.push(`<div class="pr-hero"><h2>${nm?'Hola, '+nm:'Tu informe'}</h2><p>${sum}</p></div>${u.msg?`<p class="pr-msg" style="margin-top:12px">${esc(u.msg)}</p>`:''}`);
   if(n){
-    B.push(`<h3>Tu mes en tres datos</h3><div class="pr-kp"><div class="pr-k"><b>${n}</b><span>${n===1?'sesión realizada':'sesiones realizadas'}</span></div><div class="pr-k"><b>${e.wTot?e.wOn+'/'+e.wTot:'–'}</b><span>semanas con entrenamiento</span></div><div class="pr-k"><b>${e.streak||'–'}</b><span>${e.streak===1?'semana seguida':'semanas seguidas'}</span></div></div>${e.hist.filter(h=>h.n>0).length>1?`<h4>Sesiones por mes</h4>${pacMonthSVG(e.hist,K)}`:''}`);
+    if(e.hist.filter(h=>h.n>0).length>1)B.push(`<h3>Sesiones por mes</h3>${pacMonthSVG(e.hist,K)}`);
   }
   const ser=R.hist.map((h,i)=>({h,i})).filter(x=>x.h.nex>0);
-  if(R.weeks.length)B.push(`<h3>Gráfico de carga</h3><p class="sub" style="margin-bottom:4px">Así se planificó tu entrenamiento durante las 48 semanas del plan. Las semanas de ${mes} van resaltadas: las barras bajas son semanas de descanso o descarga y las altas, de más exigencia.</p>${loadSVG(R,K)}<div class="lgd"><span><i style="background:${K.low}"></i>Descarga (menos de 70%)</span><span><i style="background:${K.mid}"></i>Carga media (70 a 79%)</span><span><i style="background:${K.high}"></i>Carga alta (80% o más)</span><span>M1 a M12: mesociclos</span></div>`);
+  if(R.weeks.length)B.push(`<h3>Gráfico de carga</h3><p class="sub" style="margin-bottom:4px">Así se planificó tu entrenamiento. Las semanas de ${mes} van resaltadas: las barras bajas son semanas de descanso o descarga y las altas, de más exigencia.</p>${loadSVG(R,K)}<div class="lgd"><span><i style="background:${K.low}"></i>Descarga (menos de 70%)</span><span><i style="background:${K.mid}"></i>Carga media (70 a 79%)</span><span><i style="background:${K.high}"></i>Carga alta (80% o más)</span><span>M1 a M12: mesociclos</span></div>`);
   {const t=evBlk(R,K,true);if(t)B.push(t)}
   {const t=pacTrabBlk(R,e,K);if(t)B.push(t)}
   if(a){
-    {const t=pacFisBlk(R,K);if(t)B.push(t)}
     {const t=pacHrvBlk(R,K);if(t)B.push(t)}
-    {const t=phyZonasBlk(R,K);if(t)B.push(t)}
+    {const t=pacZonasBlk(R,K);if(t)B.push(t)}
     {const t=pacRecBlk(R,K);if(t)B.push(t)}
-    phyCurvasBlks(R,K).forEach(x=>B.push(x));
   }
   if(R.ss.length){const rows=R.ss.map(s=>`<div class="ses"><b>${esc(fdate(s.date))}</b> · ${s.time} · ${ESTN[s.est]}</div>`);for(let i=0;i<rows.length;i+=12)B.push((i?'':'<h3>Fechas de las sesiones</h3>')+rows.slice(i,i+12).join(''))}
-  const hm=prLines(u.home),al=prLines(u.alert),gl=prLines(u.goals);
+  const hm=prLines(u.home),al=prLines(u.alert);
   if(hm.length||al.length)B.push(`<h3>Para seguir por tu cuenta</h3>${hm.length?`<p class="sub">Lo que puedes hacer en casa. Marca cada uno cuando lo logres.</p>${pacCk(hm)}`:''}${al.length?`<h4>Consúltame si</h4>${pacCk(al,'al')}`:''}`);
-  if(gl.length||e.next.length)B.push(`<h3>Lo que viene</h3>${gl.length?`<p class="sub">Tus metas para ${MES[(R.m+1)%12].toLowerCase()}.</p>${pacCk(gl)}`:''}${e.next.length?`<h4>Cómo serán las próximas semanas</h4><div>${e.next.map(x=>`<span class="pr-pill ${x.c}" style="margin-right:6px">Semana ${x.w}: ${PWK[x.c]}</span>`).join('')}</div>`:''}`);
   return `<div class="rp">${B.map(x=>`<div class="blk">${x}</div>`).join('')}</div>`;
 }
 function pacTxt(R){
@@ -1387,18 +1420,15 @@ function pacTxt(R){
   if(e.comp.length){L.push(`Qué trabajamos (de ${e.N} sesiones con ejercicios):`);e.comp.forEach(c=>L.push(`- ${c.l}: ${c.n} sesiones (${c.pc}%)`));L.push('')}
   if(a){
     const rows=[['FC de reposo','rest','lpm'],['FC mínima media','min','lpm'],['FC media','avg','lpm'],['% de la FC máxima','pMax','%'],['% de la reserva','pRes','%'],['FC máxima observada','max','lpm']].filter(r=>a[r[1]]!=null),q=R.phPrev&&R.phPrev.n?R.phPrev:null;
-    if(rows.length){L.push('Resumen fisiológico:');rows.forEach(r=>L.push(`- ${r[0]}: ${a[r[1]]} ${r[2]}`+(q&&q[r[1]]!=null?` (mes anterior ${q[r[1]]})`:'')));L.push('')}
-    const h=pacHrv(R);if(h){L.push('Tu sistema nervioso y tu recuperación:',`- ${h.head}. ${h.txt.join(' ')}`,'- Es una guía, no un diagnóstico.','')}
-    if(a.zpct&&a.zinfo){L.push('Tiempo en zonas de entrenamiento:');if(a.zpct[0]>0)L.push(`- Bajo la primera zona: ${a.zpct[0]} %`);a.zinfo.items.forEach((it,i)=>L.push(`- ${it.n}: ${a.zpct[i+1]} %`));L.push('')}
+    const h=pacHrv(R);if(h){L.push('Tu recuperación:',`- ${h.head}. ${h.txt.join(' ')}`,'- Es una guía, no un diagnóstico.','')}
+    {const zt=pacZonaSum(R);if(zt)L.push('Zonas de entrenamiento:','- '+strip(zt),'')}
     const d=pacRecData(R);if(d)L.push('Recuperación cardiovascular (cómo baja tu pulso después del esfuerzo):','- '+strip(d.txt.join(' ')),'')
   }
   evTxt(R).forEach(x=>L.push(x));
   if(R.ss.length){L.push(['Fechas de las sesiones:'][0]);R.ss.forEach(s=>L.push(`- ${fdate(s.date)}, ${s.time} (${ESTN[s.est]})`));L.push('')}
-  const hm=prLines(u.home),gl=prLines(u.goals),al=prLines(u.alert);
+  const hm=prLines(u.home),al=prLines(u.alert);
   if(hm.length){L.push('Para hacer en casa:');hm.forEach(x=>L.push('- '+x));L.push('')}
-  if(gl.length){L.push('Metas para '+MES[(R.m+1)%12].toLowerCase()+':');gl.forEach(x=>L.push('- '+x));L.push('')}
   if(al.length){L.push('Consúltame si:');al.forEach(x=>L.push('- '+x));L.push('')}
-  if(e.next.length)L.push('Próximas semanas: '+e.next.map(x=>`semana ${x.w} ${PWK[x.c]}`).join(', ')+'.');
   return L.join('\n').trim();
 }
 function viewInfPac(){
@@ -2001,4 +2031,3 @@ init();
 <script>if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))</script>
 </body>
 </html>
-
